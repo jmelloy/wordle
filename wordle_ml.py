@@ -1,7 +1,9 @@
 from collections import defaultdict, Counter
+import enum
 import sys
 import numpy as np
 from math import sqrt
+import json
 
 c = Counter()
 
@@ -16,7 +18,8 @@ yellow_start = word_length * 26
 
 def word_vec(word):
     num_list = (
-        [0] * (26 * word_length) + [0] * (26 * word_length) + [1] * 26 * word_length
+        [0] * (26 * word_length) + [0] *
+        (26 * word_length) + [1] * 26 * word_length
     )
 
     for i, l in enumerate(word):
@@ -33,7 +36,7 @@ def word_vec(word):
 
 
 words = {}
-
+word_freq = []
 with open("unigram_freq.csv") as W:
     header = W.readline()
     for line in W:
@@ -41,9 +44,20 @@ with open("unigram_freq.csv") as W:
 
         if len(word) != word_length or word != word.lower():
             continue
+        word_freq.append(word)
+
+with open("twl06.txt") as W:
+    header = W.readline()
+    for line in W:
+        word = line.strip()
+
+        if len(word) != word_length or word != word.lower():
+            continue
 
         words[word] = word_vec(word)
         c.update(word.lower())
+        if word not in word_freq:
+            word_freq.append(word)
 
 frequency = [x[0] for x in c.most_common()]
 
@@ -91,6 +105,9 @@ def get_words(total, guess, result):
                 red_guesses,
             )
         ].append(word)
+
+    for k, v in matches.items():
+        v.sort(key=lambda x: word_freq.index(x))
 
     return total, matches
 
@@ -142,6 +159,41 @@ def magnitude(best_match):
     return sqrt(best_match[0] * best_match[0] + best_match[1] * best_match[1])
 
 
+def eliminations(word_list, greens, yellows):
+    word_eliminations = {}
+    for word in word_list:
+        l = list(word)
+        for w in word_eliminations:
+            wl = list(w)
+            for i, x in enumerate(greens):
+                if x != '.':
+                    l[i] = '.'
+                    wl[i] = '.'
+            # print(word, w, l, wl, (set(l) & set(wl)) - {'.'})
+            if (set(l) & set(wl)) - {'.'} - set(yellows):
+                # print(word, w, l, wl, (set(l) & set(wl)) - {'.'})
+                word_eliminations[w].append(word)
+        word_eliminations[word] = [word]
+    # print(json.dumps(word_eliminations))
+    return [(k, len(word_eliminations[k])) for k in sorted(word_eliminations, key=lambda k: len(word_eliminations[k]), reverse=True)[0:10]]
+
+
+def get_greens(total):
+    word = ['.'] * word_length
+    for i in range(0, yellow_start):
+        if(total[i] == 1):
+            word[i // 26] = alpha[i % 26]
+    return "".join(word)
+
+
+def get_yellows(total):
+    word = set()
+    for i in range(yellow_start, red_start):
+        if(total[i] == 1):
+            word.add(alpha[i % 26])
+    return "".join(word)
+
+
 if __name__ == "__main__":
 
     # arose grrrg gygrg rrrgr rrryy
@@ -168,5 +220,7 @@ if __name__ == "__main__":
             print(
                 matches[best_match][0:10],
                 best_match,
-                magnitude(best_match=best_match),
+                len(matches[best_match]),
             )
+            print(eliminations(matches[best_match],
+                  get_greens(total), get_yellows(total)))
