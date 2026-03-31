@@ -1,2 +1,4 @@
 numpy
 opencv-python
+fastapi
+uvicorn[standard]
