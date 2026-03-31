@@ -1,7 +1,6 @@
 """FastAPI backend wrapping wordle_ml solver logic."""
 
 from collections import Counter, defaultdict
-from math import sqrt
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -197,8 +196,8 @@ def api_solve(req: SolveRequest):
     if not all_matches:
         return {"candidates": [], "greens": ".....", "yellows": "", "total_remaining": 0}
 
-    # Only use the best matching group (highest green+yellow magnitude)
-    best_key = sorted(all_matches.keys(), key=lambda k: sqrt(k[0]**2 + k[1]**2))[-1]
+    # Best group = most green matches, then most yellow, then most red (reds confirm excluded letters)
+    best_key = sorted(all_matches.keys(), key=lambda k: (k[0], k[1], k[2]))[-1]
     candidates = all_matches[best_key]
     total_words = len(candidates)
 
