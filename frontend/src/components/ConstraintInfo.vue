@@ -10,7 +10,6 @@ defineProps({
 <template>
   <div class="info">
     <div class="constraint-row">
-      <span class="label">Pattern:</span>
       <span class="pattern">
         <span
           v-for="(ch, i) in greens.split('')"
@@ -19,26 +18,15 @@ defineProps({
           :class="{ matched: ch !== '.' }"
         >{{ ch }}</span>
       </span>
-    </div>
 
-    <div v-if="yellows" class="constraint-row">
-      <span class="label">Contains:</span>
-      <span class="yellow-letters">
+      <span v-if="yellows" class="yellow-letters">
         <span v-for="ch in yellows.split('')" :key="ch" class="yl">{{ ch }}</span>
       </span>
-    </div>
 
-    <div class="constraint-row">
-      <span class="label">Remaining:</span>
-      <span class="count">{{ total }}</span>
-    </div>
-
-    <div v-if="matchKey" class="constraint-row">
-      <span class="label">Match:</span>
-      <span class="match-badges">
-        <span class="badge green">G{{ matchKey[0] }}</span>
-        <span class="badge yellow">Y{{ matchKey[1] }}</span>
-        <span class="badge red">R{{ matchKey[2] }}</span>
+      <span v-if="matchKey" class="match-badges">
+        <span class="badge green">{{ matchKey[0] }}</span>
+        <span class="badge yellow">{{ matchKey[1] }}</span>
+        <span class="badge red">{{ matchKey[2] }}</span>
       </span>
     </div>
   </div>
@@ -46,51 +34,40 @@ defineProps({
 
 <style scoped>
 .info {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 12px;
-  background: var(--bg-light);
-  border-radius: 6px;
-  border: 1px solid var(--tile-border);
-  font-size: 0.85rem;
+  padding: 10px 0 0;
+  border-top: 1px solid rgba(0, 212, 170, 0.08);
 }
 
 .constraint-row {
   display: flex;
   align-items: center;
-  gap: 8px;
-}
-
-.label {
-  color: var(--text-dim);
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  min-width: 80px;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .pattern {
   display: flex;
   gap: 3px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.15em;
-  font-size: 1.1rem;
 }
 
 .pattern-char {
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--tile-border);
-  border-radius: 2px;
+  border: 1px solid rgba(0, 212, 170, 0.1);
+  border-radius: 4px;
+  font-weight: 700;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  font-family: 'Fira Code', monospace;
 }
 .pattern-char.matched {
-  background: var(--green);
-  border-color: var(--green);
+  background: rgba(0, 200, 83, 0.2);
+  border-color: rgba(0, 200, 83, 0.4);
+  color: var(--green);
 }
 
 .yellow-letters {
@@ -99,36 +76,48 @@ defineProps({
 }
 
 .yl {
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--yellow);
-  border-radius: 2px;
+  background: rgba(200, 164, 21, 0.2);
+  border: 1px solid rgba(200, 164, 21, 0.3);
+  border-radius: 4px;
   font-weight: 700;
   text-transform: uppercase;
-  font-size: 0.9rem;
-}
-
-.count {
-  font-weight: 700;
-  font-size: 1.1rem;
-  color: var(--text);
+  font-size: 0.7rem;
+  color: var(--yellow);
+  font-family: 'Fira Code', monospace;
 }
 
 .match-badges {
   display: flex;
-  gap: 6px;
+  gap: 4px;
+  margin-left: auto;
 }
 
 .badge {
-  font-size: 0.7rem;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.6rem;
   font-weight: 700;
-  padding: 2px 8px;
-  border-radius: 3px;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
 }
-.badge.green { background: var(--green-dark); }
-.badge.yellow { background: var(--yellow-dark); }
-.badge.red { background: var(--red-dark); }
+.badge.green {
+  background: rgba(0, 200, 83, 0.2);
+  color: var(--green);
+}
+.badge.yellow {
+  background: rgba(200, 164, 21, 0.15);
+  color: var(--yellow);
+}
+.badge.red {
+  background: rgba(84, 110, 122, 0.2);
+  color: var(--red);
+}
 </style>

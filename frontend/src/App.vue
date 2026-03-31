@@ -1,7 +1,7 @@
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref } from 'vue'
 import GuessRow from './components/GuessRow.vue'
-import WordCloud from './components/WordCloud.vue'
+import WordWeb from './components/WordWeb.vue'
 import ConstraintInfo from './components/ConstraintInfo.vue'
 
 const guesses = ref([])
@@ -118,80 +118,137 @@ function selectWord(word) {
     addGuess()
   }
 }
+
 </script>
 
 <template>
-  <h1>Wordle Solver</h1>
+  <!-- Full-viewport web background -->
+  <WordWeb
+    :candidates="candidates"
+    :loading="loading"
+    :startingWords="startingWords"
+    @select="selectWord"
+  />
 
-  <div class="layout">
-    <div class="input-panel">
-      <h2>Your Guesses</h2>
-      <div class="guess-list">
-        <GuessRow
-          v-for="(guess, i) in guesses"
-          :key="i"
-          :guess="guess"
-          :index="i"
-          @commit="commitGuess(i)"
-          @toggle="updateResult(i, $event)"
-          @remove="removeGuess(i)"
-        />
+  <!-- Floating center panel -->
+  <div class="center-panel">
+    <header class="panel-header">
+      <h1>Wordle<span class="accent">.</span></h1>
+      <div v-if="candidates.length > 0" class="remaining-badge">
+        {{ totalRemaining }} left
       </div>
-      <div class="actions">
-        <button class="btn btn-reset" @click="reset">Reset</button>
+      <div v-else class="remaining-badge dim">
+        pick a word
       </div>
+    </header>
 
-      <ConstraintInfo
-        v-if="greens !== '.....'"
-        :greens="greens"
-        :yellows="yellows"
-        :total="totalRemaining"
-        :matchKey="matchKey"
+    <div class="guess-list">
+      <GuessRow
+        v-for="(guess, i) in guesses"
+        :key="i"
+        :guess="guess"
+        :index="i"
+        @commit="commitGuess(i)"
+        @toggle="updateResult(i, $event)"
+        @remove="removeGuess(i)"
       />
-
-      <div v-if="candidates.length === 0 && startingWords.length > 0" class="starters">
-        <h2>Suggested Starters</h2>
-        <div class="starter-chips">
-          <button
-            v-for="w in startingWords.slice(0, 12)"
-            :key="w.word"
-            class="chip"
-            @click="selectWord(w.word)"
-          >
-            {{ w.word }}
-          </button>
-        </div>
-      </div>
     </div>
 
-    <div class="cloud-panel">
-      <h2 v-if="candidates.length > 0">
-        Candidates ({{ totalRemaining }} remaining)
-      </h2>
-      <h2 v-else>Enter a guess to see candidates</h2>
-      <WordCloud :candidates="candidates" :loading="loading" @select="selectWord" />
+    <ConstraintInfo
+      v-if="greens !== '.....'"
+      :greens="greens"
+      :yellows="yellows"
+      :total="totalRemaining"
+      :matchKey="matchKey"
+    />
+
+    <div class="panel-footer">
+      <button class="btn-reset" @click="reset">
+        <span class="reset-icon">↺</span> Reset
+      </button>
     </div>
+  </div>
+
+  <!-- Instruction hint (bottom) -->
+  <div v-if="candidates.length === 0 && !loading" class="hint-bar">
+    Click a word in the web to begin — or type your own guess
   </div>
 </template>
 
 <style scoped>
-.layout {
-  display: grid;
-  grid-template-columns: 340px 1fr;
-  gap: 24px;
-  align-items: start;
-}
-
-@media (max-width: 720px) {
-  .layout {
-    grid-template-columns: 1fr;
-  }
-}
-
-.input-panel {
+.center-panel {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10;
+  width: 340px;
+  max-height: 80vh;
+  overflow-y: auto;
+  padding: 24px 28px;
+  background: rgba(8, 14, 24, 0.88);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(0, 212, 170, 0.12);
+  border-radius: 16px;
+  box-shadow:
+    0 0 60px rgba(0, 212, 170, 0.04),
+    0 20px 60px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+/* Scrollbar styling */
+.center-panel::-webkit-scrollbar {
+  width: 4px;
+}
+.center-panel::-webkit-scrollbar-track {
+  background: transparent;
+}
+.center-panel::-webkit-scrollbar-thumb {
+  background: rgba(0, 212, 170, 0.2);
+  border-radius: 2px;
+}
+
+.panel-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.panel-header h1 {
+  font-family: 'Syne', sans-serif;
+  font-size: 1.6rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  text-transform: none;
+  color: #e0e4e8;
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+.accent {
+  color: #00d4aa;
+}
+
+.remaining-badge {
+  font-family: 'Fira Code', monospace;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #00d4aa;
+  background: rgba(0, 212, 170, 0.08);
+  border: 1px solid rgba(0, 212, 170, 0.15);
+  border-radius: 20px;
+  padding: 4px 12px;
+  letter-spacing: 0.05em;
+}
+.remaining-badge.dim {
+  color: #6b7280;
+  background: rgba(107, 114, 128, 0.08);
+  border-color: rgba(107, 114, 128, 0.15);
 }
 
 .guess-list {
@@ -200,56 +257,67 @@ function selectWord(word) {
   gap: 8px;
 }
 
-.actions {
+.panel-footer {
   display: flex;
-  gap: 8px;
-}
-
-.btn {
-  padding: 8px 20px;
-  border: none;
-  border-radius: 4px;
-  font-size: 0.85rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  justify-content: center;
+  padding-top: 4px;
 }
 
 .btn-reset {
-  background: var(--red-dark);
-  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 18px;
+  background: rgba(84, 110, 122, 0.15);
+  border: 1px solid rgba(84, 110, 122, 0.25);
+  border-radius: 8px;
+  color: #6b7a8d;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  transition: all 0.2s;
 }
 .btn-reset:hover {
-  background: var(--red);
+  color: #e0e4e8;
+  background: rgba(84, 110, 122, 0.25);
+  border-color: rgba(84, 110, 122, 0.4);
+}
+.reset-icon {
+  font-size: 0.9rem;
 }
 
-.starters {
-  margin-top: 8px;
+.hint-bar {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.72rem;
+  color: rgba(0, 212, 170, 0.45);
+  letter-spacing: 0.06em;
+  padding: 8px 20px;
+  background: rgba(8, 14, 24, 0.7);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(0, 212, 170, 0.08);
+  border-radius: 20px;
+  white-space: nowrap;
+  animation: hintPulse 3s ease-in-out infinite;
 }
 
-.starter-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+@keyframes hintPulse {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
 }
 
-.chip {
-  padding: 6px 12px;
-  border: 1px solid var(--tile-border);
-  border-radius: 4px;
-  background: var(--bg-light);
-  color: var(--text);
-  font-size: 0.85rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-.chip:hover {
-  border-color: var(--yellow);
-  color: var(--yellow);
-}
-
-.cloud-panel {
-  min-height: 400px;
+@media (max-width: 720px) {
+  .center-panel {
+    width: 90vw;
+    max-width: 340px;
+    padding: 18px 20px;
+  }
 }
 </style>
