@@ -1,4 +1,3 @@
-from audioop import reverse
 from collections import defaultdict, Counter
 import enum
 import sys
@@ -182,7 +181,7 @@ def play():
                     print(k, len(v))
                 print(
                     len(word_lists[quad]),
-                    sorted(word_lists[quad], key=lambda x: word_freq.index(x))[0:10],
+                    sorted(word_lists[quad], key=lambda x: word_freq.index(x))[:25],
                 )
 
 
