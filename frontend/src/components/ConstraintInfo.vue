@@ -3,7 +3,7 @@ defineProps({
   greens: String,
   yellows: String,
   total: Number,
-  groups: Array,
+  matchKey: Array,
 })
 </script>
 
@@ -33,24 +33,13 @@ defineProps({
       <span class="count">{{ total }}</span>
     </div>
 
-    <div v-if="groups && groups.length > 1" class="groups">
-      <h2>Match Groups</h2>
-      <div
-        v-for="(g, i) in groups.slice(0, 8)"
-        :key="i"
-        class="group"
-      >
-        <div class="group-header">
-          <span class="g-badge green">G{{ g.green }}</span>
-          <span class="g-badge yellow">Y{{ g.yellow }}</span>
-          <span class="g-badge red">R{{ g.red }}</span>
-          <span class="g-count">{{ g.count }} words</span>
-        </div>
-        <div class="group-words">
-          {{ g.top_words.slice(0, 6).join(', ') }}
-          <span v-if="g.count > 6" class="more">+{{ g.count - 6 }} more</span>
-        </div>
-      </div>
+    <div v-if="matchKey" class="constraint-row">
+      <span class="label">Match:</span>
+      <span class="match-badges">
+        <span class="badge green">G{{ matchKey[0] }}</span>
+        <span class="badge yellow">Y{{ matchKey[1] }}</span>
+        <span class="badge red">R{{ matchKey[2] }}</span>
+      </span>
     </div>
   </div>
 </template>
@@ -128,51 +117,18 @@ defineProps({
   color: var(--text);
 }
 
-.groups {
-  margin-top: 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.group {
-  padding: 6px 8px;
-  border: 1px solid var(--tile-border);
-  border-radius: 4px;
-}
-
-.group-header {
+.match-badges {
   display: flex;
   gap: 6px;
-  align-items: center;
-  margin-bottom: 4px;
 }
 
-.g-badge {
+.badge {
   font-size: 0.7rem;
   font-weight: 700;
-  padding: 2px 6px;
+  padding: 2px 8px;
   border-radius: 3px;
 }
-.g-badge.green { background: var(--green-dark); }
-.g-badge.yellow { background: var(--yellow-dark); }
-.g-badge.red { background: var(--red-dark); }
-
-.g-count {
-  margin-left: auto;
-  color: var(--text-dim);
-  font-size: 0.75rem;
-}
-
-.group-words {
-  font-size: 0.8rem;
-  color: var(--text-dim);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.more {
-  color: var(--text-dim);
-  opacity: 0.6;
-}
+.badge.green { background: var(--green-dark); }
+.badge.yellow { background: var(--yellow-dark); }
+.badge.red { background: var(--red-dark); }
 </style>

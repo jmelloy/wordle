@@ -7,28 +7,28 @@ const props = defineProps({
 })
 const emit = defineEmits(['select'])
 
-// Compute font sizes based on rank/frequency
+// Size words by elimination power, color by rank
 const cloudWords = computed(() => {
   if (!props.candidates || props.candidates.length === 0) return []
 
-  const maxFreq = Math.max(...props.candidates.map(c => c.freq || 1))
-  const minFreq = Math.min(...props.candidates.map(c => c.freq || 1))
-  const range = Math.max(maxFreq - minFreq, 1)
+  const maxElim = Math.max(...props.candidates.map(c => c.eliminations || 1))
+  const minElim = Math.min(...props.candidates.map(c => c.eliminations || 1))
+  const elimRange = Math.max(maxElim - minElim, 1)
 
-  return props.candidates.map((c, i) => {
-    // Normalize frequency to 0-1, then map to font size
-    const norm = (c.freq - minFreq) / range
-    const fontSize = 0.65 + norm * 1.8 // 0.65rem to 2.45rem
-    const opacity = 0.4 + norm * 0.6 // 0.4 to 1.0
+  return props.candidates.map((c) => {
+    // Size by elimination power (how many partitions this word creates)
+    const elimNorm = (c.eliminations - minElim) / elimRange
+    const fontSize = 0.6 + elimNorm * 2.0 // 0.6rem to 2.6rem
+    const opacity = 0.35 + elimNorm * 0.65
 
-    // Color based on match quality (rank)
-    let hue
-    if (i < 3) hue = 120 // green for top 3
-    else if (i < 10) hue = 55 // yellow-ish
-    else hue = 0 // neutral
+    // Color: green for top eliminators, yellow for mid, gray for low
+    const rank = c.rank
+    let hue, saturation
+    if (rank <= 3) { hue = 120; saturation = 60 }
+    else if (rank <= 10) { hue = 55; saturation = 55 }
+    else { hue = 0; saturation = 0 }
 
-    const saturation = i < 10 ? 50 : 0
-    const lightness = 50 + (1 - norm) * 25
+    const lightness = 45 + (1 - elimNorm) * 30
 
     return {
       ...c,
@@ -60,7 +60,7 @@ const cloudWords = computed(() => {
           color: w.color,
         }"
         @click="emit('select', w.word)"
-        :title="`${w.word} — rank #${w.rank}, freq: ${w.freq}`"
+        :title="`${w.word} — #${w.rank}, eliminates ${w.eliminations} patterns, freq: ${w.freq}`"
       >
         {{ w.word }}
       </button>

@@ -166,6 +166,24 @@ def api_all_words():
     return [{"word": w, "freq": word_freq.get(w, 0)} for w in sorted(words.keys())]
 
 
+def compute_eliminations(candidate_list):
+    """For each candidate, compute how many distinct wordle_rank partitions it creates.
+
+    More partitions = guessing that word gives more information = eliminates more.
+    This mirrors check_word() from wordle_ml.py.
+    """
+    # Only score the top candidates to keep it fast (n^2 with full list)
+    score_limit = min(len(candidate_list), 80)
+    to_score = candidate_list[:score_limit]
+    eliminations = {}
+    for word in to_score:
+        patterns = set()
+        for other in candidate_list:
+            patterns.add(wordle_rank(word, other))
+        eliminations[word] = len(patterns)
+    return eliminations
+
+
 @app.post("/api/solve")
 def api_solve(req: SolveRequest):
     """Given a list of guesses with results, return remaining candidates with scores."""
@@ -176,43 +194,48 @@ def api_solve(req: SolveRequest):
         total, matches = get_words(total, g.word.lower(), g.result.lower())
         all_matches = matches
 
-    # Find the best matching group (highest green+yellow score)
     if not all_matches:
         return {"candidates": [], "greens": ".....", "yellows": "", "total_remaining": 0}
 
+    # Only use the best matching group (highest green+yellow magnitude)
     best_key = sorted(all_matches.keys(), key=lambda k: sqrt(k[0]**2 + k[1]**2))[-1]
     candidates = all_matches[best_key]
-
-    # Build candidate list with probability-like scores
     total_words = len(candidates)
-    result_candidates = []
-    for i, w in enumerate(candidates):
+
+    # Compute elimination scores for top candidates (scored against full list)
+    eliminations = compute_eliminations(candidates)
+    max_elim = max(eliminations.values()) if eliminations else 1
+
+    # Build results: scored candidates first (sorted by elim), then rest by freq
+    scored = []
+    unscored = []
+    for w in candidates:
         freq = word_freq.get(w, 0)
-        result_candidates.append({
+        elim = eliminations.get(w, 0)
+        entry = {
             "word": w,
-            "rank": i + 1,
+            "rank": 0,
             "freq": freq,
             "score": score_word(w),
-            "match_key": list(best_key),
-        })
+            "eliminations": elim,
+            "elim_pct": round(elim / max_elim * 100) if max_elim else 0,
+        }
+        if w in eliminations:
+            scored.append(entry)
+        else:
+            unscored.append(entry)
 
-    # Also return secondary groups for context
-    groups = []
-    for key in sorted(all_matches.keys(), key=lambda k: sqrt(k[0]**2 + k[1]**2), reverse=True):
-        groups.append({
-            "green": key[0],
-            "yellow": key[1],
-            "red": key[2],
-            "count": len(all_matches[key]),
-            "top_words": all_matches[key][:10],
-        })
+    scored.sort(key=lambda c: (-c["eliminations"], -c["freq"]))
+    result_candidates = scored + unscored
+    for i, c in enumerate(result_candidates):
+        c["rank"] = i + 1
 
     return {
-        "candidates": result_candidates[:200],
+        "candidates": result_candidates,
         "greens": get_greens(total),
         "yellows": get_yellows(total),
         "total_remaining": total_words,
-        "groups": groups[:20],
+        "match_key": list(best_key),
     }
 
 

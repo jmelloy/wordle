@@ -6,7 +6,7 @@ import ConstraintInfo from './components/ConstraintInfo.vue'
 
 const guesses = ref([])
 const candidates = ref([])
-const groups = ref([])
+const matchKey = ref(null)
 const greens = ref('.....')
 const yellows = ref('')
 const totalRemaining = ref(0)
@@ -41,7 +41,7 @@ async function solve() {
     })
     const data = await res.json()
     candidates.value = data.candidates || []
-    groups.value = data.groups || []
+    matchKey.value = data.match_key || null
     greens.value = data.greens || '.....'
     yellows.value = data.yellows || ''
     totalRemaining.value = data.total_remaining || 0
@@ -81,7 +81,7 @@ function removeGuess(index) {
 function reset() {
   guesses.value = []
   candidates.value = []
-  groups.value = []
+  matchKey.value = null
   greens.value = '.....'
   yellows.value = ''
   totalRemaining.value = 0
@@ -123,7 +123,7 @@ function selectWord(word) {
         :greens="greens"
         :yellows="yellows"
         :total="totalRemaining"
-        :groups="groups"
+        :matchKey="matchKey"
       />
 
       <div v-if="candidates.length === 0 && startingWords.length > 0" class="starters">
