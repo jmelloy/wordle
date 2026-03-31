@@ -1,17 +1,21 @@
-:root {
-  --green: #6aaa64;
-  --green-dark: #538d4e;
-  --yellow: #c9b458;
-  --yellow-dark: #b59f3b;
-  --red: #787c7e;
-  --red-dark: #3a3a3c;
-  --bg: #121213;
-  --bg-light: #1a1a1b;
-  --tile-border: #3a3a3c;
-  --text: #ffffff;
-  --text-dim: #818384;
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Syne:wght@600;700;800&display=swap');
 
-  font-family: 'Clear Sans', 'Helvetica Neue', Arial, sans-serif;
+:root {
+  --bg: #060a10;
+  --bg-glass: rgba(8, 14, 24, 0.88);
+  --accent: #00d4aa;
+  --accent-dim: rgba(0, 212, 170, 0.15);
+  --green: #00c853;
+  --green-dark: #009624;
+  --yellow: #ffd740;
+  --yellow-dark: #c8a415;
+  --red: #546e7a;
+  --red-dark: #37474f;
+  --tile-border: rgba(0, 212, 170, 0.12);
+  --text: #e0e4e8;
+  --text-dim: #6b7280;
+
+  font-family: 'Fira Code', 'JetBrains Mono', monospace;
   color-scheme: dark;
 }
 
@@ -25,33 +29,37 @@ body {
   background-color: var(--bg);
   color: var(--text);
   min-height: 100vh;
+  overflow: hidden;
 }
 
 #app {
-  max-width: 960px;
-  margin: 0 auto;
-  padding: 12px 16px;
+  width: 100vw;
+  height: 100vh;
+  position: relative;
 }
 
 h1 {
-  text-align: center;
-  font-size: 1.8rem;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  margin-bottom: 20px;
-  border-bottom: 1px solid var(--tile-border);
-  padding-bottom: 10px;
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
 }
 
 h2 {
-  font-size: 0.85rem;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.7rem;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.1em;
   color: var(--text-dim);
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 button {
   cursor: pointer;
   font-family: inherit;
+}
+
+/* Selection color */
+::selection {
+  background: rgba(0, 212, 170, 0.3);
+  color: #fff;
 }

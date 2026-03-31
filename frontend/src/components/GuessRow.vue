@@ -14,6 +14,11 @@ watch(wordInput, (val) => {
   wordInput.value = props.guess.word
 })
 
+// Sync external changes (e.g., selectWord filling in the word)
+watch(() => props.guess.word, (val) => {
+  if (val !== wordInput.value) wordInput.value = val
+})
+
 function onKeydown(e) {
   if (e.key === 'Enter' && wordInput.value.length === 5) {
     emit('commit')
@@ -30,7 +35,7 @@ const colorMap = { g: 'green', y: 'yellow', r: 'red' }
         v-model="wordInput"
         class="word-input"
         maxlength="5"
-        placeholder="word"
+        placeholder="type..."
         @keydown="onKeydown"
         spellcheck="false"
         autocomplete="off"
@@ -40,7 +45,7 @@ const colorMap = { g: 'green', y: 'yellow', r: 'red' }
         :disabled="wordInput.length !== 5"
         @click="$emit('commit')"
       >
-        Go
+        ↵
       </button>
     </div>
 
@@ -51,7 +56,7 @@ const colorMap = { g: 'green', y: 'yellow', r: 'red' }
         class="tile"
         :class="colorMap[guess.result[i]]"
         @click="$emit('toggle', i)"
-        :title="`Click to cycle: green → yellow → red`"
+        :title="`Click to cycle color`"
       >
         {{ letter }}
       </button>
@@ -70,47 +75,56 @@ const colorMap = { g: 'green', y: 'yellow', r: 'red' }
   display: flex;
   gap: 6px;
   align-items: center;
+  width: 100%;
 }
 
 .word-input {
-  width: 160px;
+  flex: 1;
   padding: 10px 12px;
-  background: var(--bg-light);
-  border: 2px solid var(--tile-border);
-  border-radius: 4px;
+  background: rgba(0, 212, 170, 0.04);
+  border: 1px solid rgba(0, 212, 170, 0.12);
+  border-radius: 8px;
   color: var(--text);
-  font-size: 1.2rem;
-  font-weight: 700;
-  letter-spacing: 0.25em;
+  font-size: 1.1rem;
+  font-weight: 600;
+  letter-spacing: 0.3em;
   text-transform: uppercase;
-  font-family: inherit;
+  font-family: 'Fira Code', monospace;
   outline: none;
+  transition: border-color 0.2s, background 0.2s;
 }
 .word-input:focus {
-  border-color: var(--text-dim);
+  border-color: rgba(0, 212, 170, 0.35);
+  background: rgba(0, 212, 170, 0.06);
 }
 .word-input::placeholder {
   color: var(--text-dim);
-  letter-spacing: 0.15em;
+  letter-spacing: 0.1em;
   font-weight: 400;
+  font-size: 0.85rem;
 }
 
 .btn-go {
-  padding: 10px 16px;
-  background: var(--green-dark);
-  color: white;
-  border: none;
-  border-radius: 4px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 200, 83, 0.15);
+  color: var(--green);
+  border: 1px solid rgba(0, 200, 83, 0.25);
+  border-radius: 8px;
   font-weight: 700;
-  font-size: 0.85rem;
-  text-transform: uppercase;
+  font-size: 1.1rem;
+  transition: all 0.2s;
 }
 .btn-go:disabled {
-  opacity: 0.3;
+  opacity: 0.2;
   cursor: not-allowed;
 }
 .btn-go:not(:disabled):hover {
-  background: var(--green);
+  background: rgba(0, 200, 83, 0.25);
+  border-color: rgba(0, 200, 83, 0.5);
 }
 
 .tiles {
@@ -120,41 +134,50 @@ const colorMap = { g: 'green', y: 'yellow', r: 'red' }
 }
 
 .tile {
-  width: 48px;
-  height: 48px;
+  width: 46px;
+  height: 46px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.4rem;
+  font-size: 1.3rem;
   font-weight: 700;
   text-transform: uppercase;
   border: none;
-  border-radius: 2px;
+  border-radius: 6px;
   color: white;
-  transition: transform 0.1s;
+  transition: transform 0.12s, box-shadow 0.12s;
+  font-family: 'Fira Code', monospace;
 }
 .tile:hover {
   transform: scale(1.08);
 }
+
 .tile.green {
   background: var(--green);
+  box-shadow: 0 0 12px rgba(0, 200, 83, 0.3);
 }
 .tile.yellow {
-  background: var(--yellow);
+  background: var(--yellow-dark);
+  color: #1a1a1a;
+  box-shadow: 0 0 12px rgba(255, 215, 64, 0.2);
 }
 .tile.red {
-  background: var(--red);
+  background: var(--red-dark);
+  box-shadow: 0 0 8px rgba(84, 110, 122, 0.2);
 }
 
 .btn-x {
-  margin-left: 8px;
+  margin-left: 6px;
   background: none;
   border: none;
   color: var(--text-dim);
-  font-size: 1.4rem;
-  padding: 4px 8px;
+  font-size: 1.2rem;
+  padding: 4px 6px;
+  border-radius: 4px;
+  transition: all 0.15s;
 }
 .btn-x:hover {
-  color: #ff4444;
+  color: #ff5252;
+  background: rgba(255, 82, 82, 0.1);
 }
 </style>
