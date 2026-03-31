@@ -78,7 +78,13 @@ with open("twl06.txt") as f:
             word_freq[word] = 1000000
 
 word_freq_list = list(word_freq.keys())
+# Pre-build index for O(1) freq lookups
+word_freq_rank = {w: i for i, w in enumerate(word_freq_list)}
 letter_freq = [x[0] for x in c.most_common()]
+
+# Pre-build word matrix for vectorized dot products
+word_names = list(words.keys())
+word_matrix = np.array([words[w] for w in word_names])  # shape: (n_words, vec_len)
 
 
 def get_word_vec_guess(guess, result):
@@ -99,15 +105,20 @@ def get_word_vec_guess(guess, result):
 def get_words(total, guess, result):
     guess_array = get_word_vec_guess(guess, result)
     total = np.logical_or(guess_array, total)
-    matches = defaultdict(list)
-    for word, check in words.items():
-        green = int(check[0:YELLOW_START].dot(total[0:YELLOW_START]))
-        yellow = int(check[YELLOW_START:RED_START].dot(total[YELLOW_START:RED_START]))
-        red = int(check[RED_START:].dot(total[RED_START:]))
-        matches[(green, yellow, red)].append(word)
 
-    for k, v in matches.items():
-        v.sort(key=lambda x: word_freq_list.index(x) if x in word_freq_list else len(word_freq_list))
+    # Vectorized: compute all dot products at once via matrix multiply
+    t = total.astype(np.int8)
+    greens = word_matrix[:, :YELLOW_START] @ t[:YELLOW_START]
+    yellows = word_matrix[:, YELLOW_START:RED_START] @ t[YELLOW_START:RED_START]
+    reds = word_matrix[:, RED_START:] @ t[RED_START:]
+
+    matches = defaultdict(list)
+    for i, name in enumerate(word_names):
+        matches[(int(greens[i]), int(yellows[i]), int(reds[i]))].append(name)
+
+    n_words = len(word_freq_rank)
+    for v in matches.values():
+        v.sort(key=lambda x: word_freq_rank.get(x, n_words))
 
     return total, matches
 
