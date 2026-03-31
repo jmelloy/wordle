@@ -89,10 +89,33 @@ function reset() {
 }
 
 function selectWord(word) {
-  // Fill the current empty guess row with this word
-  const empty = guesses.value.find(g => !g.committed && g.word.length === 0)
-  if (empty) {
-    empty.word = word
+  // Fill the current empty guess row (or create one if needed)
+  let empty = guesses.value.find(g => !g.committed && g.word.length === 0)
+  if (!empty) {
+    addGuess()
+    empty = guesses.value[guesses.value.length - 1]
+  }
+  empty.word = word
+
+  // Pre-fill result based on known greens and yellows
+  const result = []
+  for (let i = 0; i < 5; i++) {
+    if (greens.value[i] !== '.' && greens.value[i] === word[i]) {
+      result.push('g')
+    } else if (yellows.value.includes(word[i])) {
+      result.push('y')
+    } else {
+      result.push('r')
+    }
+  }
+  empty.result = result.join('')
+
+  // Auto-commit so tiles are visible (user can click to adjust colors)
+  const index = guesses.value.indexOf(empty)
+  empty.committed = true
+  solve()
+  if (index === guesses.value.length - 1) {
+    addGuess()
   }
 }
 </script>
