@@ -15,6 +15,8 @@ spec:
       labels:
         app: wordle
     spec:
+      imagePullSecrets:
+        - name: ghcr-secret
       containers:
         - name: wordle
           image: ghcr.io/jmelloy/wordle:latest
