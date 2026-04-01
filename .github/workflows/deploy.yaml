@@ -36,6 +36,7 @@ jobs:
             type=raw,value=latest
 
       - name: Build and push Docker image
+        id: build
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -51,7 +52,7 @@ jobs:
 
       - name: Deploy to Kubernetes
         run: |
+          kubectl apply -f k8s/namespace.yaml
           kubectl apply -f k8s/
-          kubectl set image deployment/wordle wordle=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.meta.outputs.digest }} || true
-          kubectl rollout restart deployment/wordle
-          kubectl rollout status deployment/wordle --timeout=120s
+          kubectl set image deployment/wordle -n wordle wordle=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.build.outputs.digest }}
+          kubectl rollout status deployment/wordle -n wordle --timeout=120s
