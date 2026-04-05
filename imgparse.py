@@ -140,6 +140,8 @@ def parse_screenshot(image_bytes):
         Returns empty list if parsing fails.
     """
     # Decode image
+    if not image_bytes:
+        return []
     arr = np.frombuffer(image_bytes, dtype=np.uint8)
     image = cv2.imdecode(arr, cv2.IMREAD_COLOR)
     if image is None:
@@ -186,13 +188,35 @@ def parse_screenshot(image_bytes):
     if best_bucket is None:
         return []
 
-    # Filter to tiles matching the dominant size (within 20%)
+    # Filter to tiles matching the dominant size (within 25%)
     target_area = best_bucket
     tolerance = target_area * 0.25
-    tiles = []
+    raw_tiles = []
     for x, y, w, h, area, bucket in tile_candidates:
         if abs(area - target_area) <= tolerance:
-            tiles.append({"x": x, "y": y, "w": w, "h": h})
+            raw_tiles.append({"x": x, "y": y, "w": w, "h": h})
+
+    if len(raw_tiles) < 5:
+        return []
+
+    # Deduplicate overlapping contours (inner/outer edges of same tile).
+    # Merge tiles whose centers are within half a tile width of each other,
+    # keeping the larger one.
+    raw_tiles.sort(key=lambda t: -(t["w"] * t["h"]))  # largest first
+    tiles = []
+    for t in raw_tiles:
+        cx = t["x"] + t["w"] / 2
+        cy = t["y"] + t["h"] / 2
+        merge_dist = t["w"] * 0.5
+        duplicate = False
+        for kept in tiles:
+            kcx = kept["x"] + kept["w"] / 2
+            kcy = kept["y"] + kept["h"] / 2
+            if abs(cx - kcx) < merge_dist and abs(cy - kcy) < merge_dist:
+                duplicate = True
+                break
+        if not duplicate:
+            tiles.append(t)
 
     if len(tiles) < 5:
         return []
