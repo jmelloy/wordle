@@ -2,7 +2,7 @@
 
 import os
 from collections import Counter, defaultdict
-from fastapi import FastAPI
+from fastapi import FastAPI, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -259,6 +259,142 @@ def api_suggest(word: str):
     matches = [w for w in words if w.startswith(word)]
     matches.sort(key=lambda x: word_freq_list.index(x) if x in word_freq_list else len(word_freq_list))
     return [{"word": w, "score": score_word(w)} for w in matches[:20]]
+
+
+@app.post("/api/upload-screenshot")
+async def api_upload_screenshot(file: UploadFile = File(...)):
+    """Parse a Wordle screenshot and return extracted guesses."""
+    from imgparse import parse_screenshot
+
+    contents = await file.read()
+    guesses = parse_screenshot(contents)
+    return {"guesses": guesses}
+
+
+@app.post("/api/analyze-game")
+def api_analyze_game(req: SolveRequest):
+    """Analyze a completed Wordle game step-by-step.
+
+    For each guess, shows:
+    - Candidates remaining before and after
+    - How many were eliminated
+    - Greens/yellows accumulated
+    - Top candidates that were available at that step
+    - Group distribution showing how the guess partitioned candidates
+    """
+    total = np.array([0] * (26 * WORD_LENGTH * 3))
+    all_words_list = list(words.keys())
+    n_words = len(word_freq_rank)
+
+    steps = []
+    prev_candidates = all_words_list  # start with full dictionary
+
+    for step_idx, g in enumerate(req.guesses):
+        guess_word = g.word.lower()
+        guess_result = g.result.lower()
+        candidates_before = len(prev_candidates)
+
+        # Apply this guess's constraints
+        total, matches = get_words(total, guess_word, guess_result)
+
+        # Find the best matching group
+        if not matches:
+            steps.append({
+                "guess": guess_word,
+                "result": guess_result,
+                "step": step_idx + 1,
+                "candidates_before": candidates_before,
+                "candidates_after": 0,
+                "eliminated": candidates_before,
+                "elimination_pct": 100.0,
+                "greens": get_greens(total),
+                "yellows": get_yellows(total),
+                "top_remaining": [],
+                "group_distribution": [],
+                "letter_analysis": [],
+            })
+            prev_candidates = []
+            continue
+
+        best_key = sorted(matches.keys(), key=lambda k: (k[0], k[1], k[2]))[-1]
+        candidates = matches[best_key]
+        candidates_after = len(candidates)
+        eliminated = candidates_before - candidates_after
+
+        # Compute group distribution: how did this guess partition the space?
+        # For each possible result pattern, how many words would match?
+        pattern_groups = defaultdict(list)
+        for w in prev_candidates:
+            if w in words:  # only valid words
+                pattern = wordle_rank(guess_word, w)
+                pattern_groups[pattern].append(w)
+
+        # Sort groups by size descending, show top groups
+        group_dist = []
+        for pattern, group_words in sorted(pattern_groups.items(), key=lambda x: -len(x[1])):
+            is_actual = (pattern == guess_result)
+            group_dist.append({
+                "pattern": pattern,
+                "count": len(group_words),
+                "is_actual": is_actual,
+                "sample_words": sorted(group_words, key=lambda x: word_freq_rank.get(x, n_words))[:5],
+            })
+
+        # Analyze what each color in this guess contributed
+        letter_analysis = []
+        for i, (letter, color) in enumerate(zip(guess_word, guess_result)):
+            if color == "g":
+                info = f"'{letter}' is at position {i+1}"
+            elif color == "y":
+                info = f"'{letter}' is in the word but not at position {i+1}"
+            else:
+                # Check if the letter appears elsewhere as green/yellow
+                other_occurrences = sum(1 for j, c in enumerate(guess_result) if j != i and guess_word[j] == letter and c in ("g", "y"))
+                if other_occurrences > 0:
+                    info = f"no additional '{letter}' beyond the one(s) found"
+                else:
+                    info = f"'{letter}' is not in the word"
+            letter_analysis.append({
+                "letter": letter,
+                "position": i + 1,
+                "color": color,
+                "info": info,
+            })
+
+        # Top remaining candidates with elimination scores
+        top_remaining = []
+        elims = compute_eliminations(candidates) if len(candidates) <= 200 else {}
+        for w in candidates[:10]:
+            top_remaining.append({
+                "word": w,
+                "freq": word_freq.get(w, 0),
+                "eliminations": elims.get(w, 0),
+            })
+
+        steps.append({
+            "guess": guess_word,
+            "result": guess_result,
+            "step": step_idx + 1,
+            "candidates_before": candidates_before,
+            "candidates_after": candidates_after,
+            "eliminated": eliminated,
+            "elimination_pct": round(eliminated / candidates_before * 100, 1) if candidates_before > 0 else 0,
+            "greens": get_greens(total),
+            "yellows": get_yellows(total),
+            "top_remaining": top_remaining,
+            "group_distribution": group_dist[:20],  # top 20 groups
+            "total_groups": len(pattern_groups),
+            "letter_analysis": letter_analysis,
+        })
+
+        prev_candidates = candidates
+
+    return {
+        "steps": steps,
+        "total_words": len(all_words_list),
+        "solved": len(steps) > 0 and steps[-1]["candidates_after"] == 1,
+        "answer": prev_candidates[0] if len(prev_candidates) == 1 else None,
+    }
 
 
 # Serve frontend static files in production

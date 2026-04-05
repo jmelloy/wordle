@@ -3,6 +3,8 @@ import { ref } from 'vue'
 import GuessRow from './components/GuessRow.vue'
 import WordWeb from './components/WordWeb.vue'
 import ConstraintInfo from './components/ConstraintInfo.vue'
+import ScreenshotUpload from './components/ScreenshotUpload.vue'
+import GameAnalysis from './components/GameAnalysis.vue'
 
 const guesses = ref([])
 const candidates = ref([])
@@ -12,6 +14,9 @@ const yellows = ref('')
 const totalRemaining = ref(0)
 const loading = ref(false)
 const startingWords = ref([])
+const analysis = ref(null)
+const showUpload = ref(true)
+const analyzingGame = ref(false)
 
 // Load starting words on mount
 fetch('/api/starting-words')
@@ -85,7 +90,52 @@ function reset() {
   greens.value = '.....'
   yellows.value = ''
   totalRemaining.value = 0
+  analysis.value = null
+  showUpload.value = true
   addGuess()
+}
+
+async function handleScreenshotParsed(parsedGuesses) {
+  // Run analysis on the parsed game
+  analyzingGame.value = true
+  showUpload.value = false
+  try {
+    const res = await fetch('/api/analyze-game', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ guesses: parsedGuesses }),
+    })
+    analysis.value = await res.json()
+    // Store parsed guesses for loading into solver
+    analysis.value._parsedGuesses = parsedGuesses
+  } catch (e) {
+    console.error('Analysis error:', e)
+  } finally {
+    analyzingGame.value = false
+  }
+}
+
+function loadAnalysisGuesses() {
+  if (!analysis.value?._parsedGuesses) return
+  // Reset solver state and load the parsed guesses
+  guesses.value = []
+  candidates.value = []
+  matchKey.value = null
+  greens.value = '.....'
+  yellows.value = ''
+  totalRemaining.value = 0
+
+  for (const g of analysis.value._parsedGuesses) {
+    guesses.value.push({ word: g.word, result: g.result, committed: true })
+  }
+  addGuess()
+  analysis.value = null
+  solve()
+}
+
+function closeAnalysis() {
+  analysis.value = null
+  showUpload.value = true
 }
 
 function selectWord(word) {
@@ -162,6 +212,26 @@ function selectWord(word) {
       :matchKey="matchKey"
     />
 
+    <!-- Screenshot upload -->
+    <ScreenshotUpload
+      v-if="showUpload && !analysis && candidates.length === 0"
+      @parsed="handleScreenshotParsed"
+    />
+
+    <!-- Game analysis results -->
+    <GameAnalysis
+      v-if="analysis"
+      :analysis="analysis"
+      @close="closeAnalysis"
+      @loadGuesses="loadAnalysisGuesses"
+    />
+
+    <!-- Loading indicator for analysis -->
+    <div v-if="analyzingGame" class="analyzing-indicator">
+      <div class="analyzing-spinner"></div>
+      <span>Analyzing game...</span>
+    </div>
+
     <div class="panel-footer">
       <button class="btn-reset" @click="reset">
         <span class="reset-icon">↺</span> Reset
@@ -170,8 +240,8 @@ function selectWord(word) {
   </div>
 
   <!-- Instruction hint (bottom) -->
-  <div v-if="candidates.length === 0 && !loading" class="hint-bar">
-    Click a word in the web to begin — or type your own guess
+  <div v-if="candidates.length === 0 && !loading && !analysis && !analyzingGame" class="hint-bar">
+    Click a word in the web to begin — or upload a screenshot to analyze
   </div>
 </template>
 
@@ -311,6 +381,31 @@ function selectWord(word) {
 @keyframes hintPulse {
   0%, 100% { opacity: 0.7; }
   50% { opacity: 1; }
+}
+
+.analyzing-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px;
+  color: var(--accent);
+  font-family: 'Fira Code', monospace;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.analyzing-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(0, 212, 170, 0.2);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 @media (max-width: 720px) {
